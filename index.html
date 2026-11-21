@@ -1,12 +1,268 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>LLM Pipeline Explorer</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8">
+  <!-- Ensures the page renders responsively on all mobile and desktop screens -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LLM Pipeline Explorer</title>
+  <!-- Link our custom stylesheet (plain CSS, no external libraries) -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- 
+    Main page wrapper:
+    WHAT: A single column container centered on screen with a maximum width of 900px.
+    WHY: Keeps content readable and comfortable to scan without stretching too wide on large screens.
+  -->
+  <div class="container">
+
+    <!-- Header Section with top-right sun/moon theme toggle -->
+    <header class="header">
+      <!-- Round sun/moon theme toggle button -->
+      <button id="theme-toggle-btn" class="theme-toggle-btn" type="button" aria-label="Toggle light or dark theme" title="Toggle theme">
+        <!-- Sun icon (shown in dark mode) -->
+        <svg class="theme-icon icon-sun" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <!-- Moon icon (shown in light mode) -->
+        <svg class="theme-icon icon-moon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      </button>
+
+      <h1 class="title">LLM Pipeline Explorer</h1>
+      <p class="subtitle">How text becomes tokens, and then becomes points in 3D space.</p>
+    </header>
+
+    <!-- 
+      Cards Section:
+      WHAT: Three cards representing the 3 sequential steps in understanding an LLM pipeline.
+      WHY: Breaking the pipeline into modular visual stages makes complex machine learning concepts easy to follow.
+    -->
+    <main class="pipeline-cards">
+
+      <!-- Card 1: Tokenizer -->
+      <section class="card" id="card-tokenizer">
+        <h2 class="card-title">1. Tokenizer</h2>
+        
+        <div class="card-content">
+          <!-- Form control: Text input to learn vocabulary from -->
+          <div class="form-group">
+            <label for="sentences-input" class="form-label">Sentences to learn words from</label>
+            <textarea 
+              id="sentences-input" 
+              class="textarea-input" 
+              rows="7"
+              placeholder="Enter sentences here..."
+            >The cat sat on the mat.
+The dog sat on the rug.
+The cat saw the dog!
+A dog and a cat can be friends.
+Do you like the cat?
+I don't like the rain, but I like the sun.</textarea>
+          </div>
+
+          <!-- Action button to trigger vocabulary creation -->
+          <div class="actions">
+            <button id="build-vocab-btn" class="btn btn-primary" type="button">Build vocabulary</button>
+          </div>
+
+          <!-- Stage 3: Vocabulary Slider controls -->
+          <div id="slider-container" class="slider-container">
+            <div class="slider-header">
+              <label for="vocab-slider" id="vocab-slider-label" class="form-label">
+                Words kept in vocabulary: <span id="kept-count">0</span> of <span id="total-words-count">0</span>
+              </label>
+            </div>
+            <input 
+              type="range" 
+              id="vocab-slider" 
+              class="slider-input" 
+              min="1" 
+              max="25" 
+              value="25"
+            >
+            <p class="slider-hint">
+              Drag left to shrink the vocabulary. Dropped words get split into smaller subword pieces. Watch the token count grow.
+            </p>
+          </div>
+
+          <!-- Vocabulary display area -->
+          <div id="vocab-results" class="vocab-results">
+            <p id="vocab-size-display" class="vocab-size-text">
+              Vocabulary size: 0 tokens (0 words + subword pieces + [UNK])
+            </p>
+            
+            <!-- Scrollable container with sticky header table -->
+            <div class="table-container">
+              <table class="vocab-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Token</th>
+                    <th>Frequency</th>
+                  </tr>
+                </thead>
+                <tbody id="vocab-table-body">
+                  <!-- Rows injected dynamically by script.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Divider between vocabulary section and encoding section -->
+          <hr class="section-divider">
+
+          <!-- Stage 4: Encode box section -->
+          <div class="encode-section">
+            <div class="form-group">
+              <label for="encode-input" class="form-label">Encode a sentence</label>
+              <textarea 
+                id="encode-input" 
+                class="textarea-input textarea-encode" 
+                rows="3"
+                placeholder="Enter a sentence to encode into tokens..."
+              >The dogs liked the sunny zebra.</textarea>
+            </div>
+
+            <div class="actions">
+              <button id="encode-btn" class="btn btn-primary" type="button">Tokenize</button>
+            </div>
+
+            <p class="encode-hint">
+              Words not in the vocabulary are split into the longest known pieces (subwords). A word with no matching pieces becomes [UNK].
+            </p>
+
+            <!-- Encoding Results & Chips Display -->
+            <div id="encode-output" class="encode-output">
+              <div id="chips-container" class="chips-container"></div>
+
+              <!-- Stats bar: Characters, Tokens, Characters per token -->
+              <div id="stats-container" class="stats-container">
+                <div class="stat-card">
+                  <span class="stat-label">Characters</span>
+                  <span class="stat-value" id="stat-chars">0</span>
+                </div>
+                <div class="stat-card">
+                  <span class="stat-label">Tokens</span>
+                  <span class="stat-value" id="stat-tokens">0</span>
+                </div>
+                <div class="stat-card">
+                  <span class="stat-label">Characters per token</span>
+                  <span class="stat-value" id="stat-cpt">0.00</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- Card 2: Embeddings in 3D -->
+      <section class="card" id="card-embeddings">
+        <h2 class="card-title">2. Embeddings in 3D</h2>
+        
+        <div class="card-content">
+          <!-- Form control: Sentences to embed -->
+          <div class="form-group">
+            <label for="embed-sentences-input" class="form-label">Sentences (one per line)</label>
+            <textarea 
+              id="embed-sentences-input" 
+              class="textarea-input" 
+              rows="9"
+              placeholder="Enter sentences (one per line)..."
+            >The cat sat on the mat.
+A kitten rested on the rug.
+The bat sat on the mat.
+I love programming in Python.
+Coding in Python is my passion.
+Pythons are large snakes.
+The stock market crashed today.
+Share prices fell sharply.</textarea>
+          </div>
+
+          <!-- Action buttons and drag hint -->
+          <div class="actions canvas-controls-bar">
+            <button id="embed-btn" class="btn btn-primary" type="button">Embed and plot</button>
+            <button id="reset-view-btn" class="btn btn-secondary" type="button">Reset view</button>
+            <span class="canvas-drag-hint">Drag with mouse or touch to rotate 3D view</span>
+          </div>
+
+          <!-- 3D Canvas visualizer -->
+          <div class="canvas-wrapper">
+            <canvas id="embedding-canvas"></canvas>
+          </div>
+
+          <!-- Closest Pairs Table -->
+          <div class="closest-pairs-section">
+            <h3 class="subsection-title">Closest pairs</h3>
+            <p class="pairs-hint">Higher means more similar in meaning.</p>
+
+            <div class="table-container">
+              <table class="pairs-table">
+                <thead>
+                  <tr>
+                    <th>Sentence A</th>
+                    <th>Sentence B</th>
+                    <th>Similarity</th>
+                  </tr>
+                </thead>
+                <tbody id="pairs-table-body">
+                  <!-- Rows injected dynamically by script.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Sentence vector numbers display -->
+          <div id="embedding-results" class="embedding-results">
+            <!-- Sentence vectors injected dynamically by script.js -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Card 3: Try Your Own -->
+      <section class="card" id="card-try-it">
+        <h2 class="card-title">3. Try Your Own</h2>
+        
+        <div class="card-content">
+          <h3 class="subsection-title">Try your own word or sentence</h3>
+
+          <div class="form-group">
+            <input 
+              type="text" 
+              id="try-input" 
+              class="text-input" 
+              placeholder="Enter a word or sentence..." 
+              value="A cat on Python"
+            >
+          </div>
+
+          <div class="actions">
+            <button id="try-btn" class="btn btn-primary" type="button">Tokenize, embed &amp; add to plot</button>
+          </div>
+
+          <!-- Pipeline output steps -->
+          <div id="try-output" class="try-output">
+            <!-- Populated dynamically by script.js -->
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- Link script.js -->
+  <script src="script.js"></script>
+</body>
 </html>
